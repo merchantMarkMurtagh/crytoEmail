@@ -23,9 +23,9 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
   }
   // Authorize a client with the loaded credentials, then call the
   // Gmail API.
-  authorize(JSON.parse(content), createDraft);
-  
-  
+  authorize(JSON.parse(content), sendMessage
+
+    );
 });
 
 /**
@@ -109,36 +109,37 @@ function storeToken(token) {
  */
 function listLabels(auth) {
   var gmail = google.gmail('v1');
-  gmail.users.labels.list({
+  gmail.users.drafts.list({
     auth: auth,
     userId: 'me',
   }, function(err, response) {
     if (err) {
+
       console.log('The API returned an error: ' + err);
       return;
     }
-    var labels = response.labels;
+    var labels = response.drafts;
     if (labels.length == 0) {
       console.log('No labels found.');
     } else {
       console.log('Labels:');
       for (var i = 0; i < labels.length; i++) {
         var label = labels[i];
-        console.log('- %s', label.name);
+        console.log(label);
+        //console.dir('- %s', label);
       }
     }
   });
 }
 
-function createDraft(auth) {
+function createDraft(OAuth) {
   // Using the js-base64 library for encoding:
   // https://www.npmjs.com/package/js-base64
   var gmail = google.gmail('v1');
   var base64EncodedEmail = Base64.encodeURI(emailTest);
   gmail.users.drafts.create({
-    auth: auth,
+    auth: OAuth,
     userId: 'me',
-    scope: 'https://www.googleapis.com/auth/gmail.compose',
     resource: {
       message: {
         raw: base64EncodedEmail
@@ -150,8 +151,37 @@ function createDraft(auth) {
       return;
     }
     console.log('Draft created');
-
   }
   );
 
+}
+
+///////////////CRAZY FUNCTIONS////////////
+
+function makeBody(to, from, subject, message) {
+    var str = ["Content-Type: text/plain; charset=\"UTF-8\"\n",
+        "MIME-Version: 1.0\n",
+        "Content-Transfer-Encoding: 7bit\n",
+        "to: ", to, "\n",
+        "from: ", from, "\n",
+        "subject: ", subject, "\n\n",
+        message
+    ].join('');
+
+    var encodedMail = new Buffer(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
+        return encodedMail;
+}
+
+function sendMessage(auth) {
+    var raw = makeBody('mmurtagh107@gmail.com', 'smcgroarty96@gmail.com', 'test subject', 'test message');
+    var gmail = google.gmail('v1');
+    gmail.users.messages.send({
+        auth: auth,
+        userId: 'me',
+        resource: {
+            raw: raw
+        }
+
+    });
+    console.log("MESSAGE SENT");
 }
